@@ -1,0 +1,15 @@
+name: Man10SlotMachine
+version: '${version}'
+main: ltotj.minecraft.man10slotmachine.Main
+api-version: 1.19
+depend:
+  - Vault
+commands:
+  mslot:
+    usage: ""
+
+permissions:
+  mslot.use:
+    default: true
+  mslot.op:
+    default: op
