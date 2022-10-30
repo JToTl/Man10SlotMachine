@@ -16,13 +16,14 @@ object DataSaver {
     private val queries=ArrayList<MySQLManager.InsertQuery>()
     var mysqlThread:Thread?=null
     var saturation=false
+    var isRunning=false
 
     fun addSpinData(player: Player,fileName:String,slotName:String,priceItem:SlotData.PriceItem?,win: WinningData?,pay:Double,payBack:Double,tableName:String,tableCount:Int,date: Date){
         val query=mysql.getInsertQuery("slot_record")
             .add("mcid",player.name)
             .add("uuid",player.uniqueId.toString())
             .add("slot_name",slotName)
-            .add("slot_id",fileName)
+            .add("slot_file",fileName)
             .addDouble("inmoney",pay)
             .addDouble("outmoney",payBack)
             .add("table_name",tableName)
@@ -30,7 +31,7 @@ object DataSaver {
             .add("date", SimpleDateFormat("yyyy-MM-dd HHH:mm:ss").format(date))
 
         if(win!=null){
-            query.add("win_name",win.winName?:"null")
+            query.add("win_name",win.innerWinName?:"null")
                 .addInt("win_level",win.level)
         }
         if(priceItem!=null){
@@ -44,7 +45,8 @@ object DataSaver {
         queries.add(query)
     }
 
-    fun start(){
+    fun start():Boolean{
+        if(isRunning)return false
         mysqlThread?.interrupt()
         mysqlThread=Thread{
 
@@ -70,7 +72,9 @@ object DataSaver {
 
             saveSpinData()
         }
+        isRunning=true
         mysqlThread!!.start()
+        return true
     }
 
     private fun saveSpinData(){
@@ -100,6 +104,7 @@ object DataSaver {
             }
             Thread.sleep(5000)
         }
+        isRunning=false
         println("${Main.pluginTitle}§4データ保存でエラーが発生しました")
 
     }

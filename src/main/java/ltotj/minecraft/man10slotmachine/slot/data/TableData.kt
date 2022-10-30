@@ -2,7 +2,6 @@ package ltotj.minecraft.man10slotmachine.slot.data
 
 import ltotj.minecraft.man10slotmachine.Main.Companion.pluginTitle
 import org.bukkit.configuration.ConfigurationSection
-import kotlin.random.Random
 
 class TableData(val innerTableName:String,config:ConfigurationSection,val slot:SlotData) {
 
@@ -70,7 +69,7 @@ class TableData(val innerTableName:String,config:ConfigurationSection,val slot:S
 
     fun getWinning():WinningData? {
         for (win in winnings.keys) {
-            if (Random.nextDouble() < winnings[win]!!) {
+            if (java.util.Random().nextDouble() < winnings[win]!!) {
                 return win
             }
         }

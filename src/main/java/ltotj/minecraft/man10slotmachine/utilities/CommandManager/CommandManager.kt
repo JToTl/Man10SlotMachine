@@ -95,6 +95,9 @@ open class CommandManager(plugin:JavaPlugin,val alias: String, private val plugi
 
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> {
         val list= mutableListOf<String>()
+        if(permission?.let { sender.hasPermission(it) }==false){
+            return list
+        }
         if(alias==this.alias) {
             if (args.size==1) {
                 for (commandObject in commandList) {

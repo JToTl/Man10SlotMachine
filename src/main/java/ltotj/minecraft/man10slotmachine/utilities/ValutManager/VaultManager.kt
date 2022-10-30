@@ -36,39 +36,8 @@ class VaultManager(private val plugin: JavaPlugin){
         return economy !=null
     }
 
-    fun getYenString(money: Double):String{//１２桁まで対応
-        val yen=StringBuilder().append("円")
-        val integerPart= floor(money)
-        if(integerPart!=0.0) {
-            val end = floor(log10(integerPart)).toInt() / 3
-            for (i in 0 until end) {
-                for (j in 0 until 3) {
-                    yen.append(floor((integerPart - floor(integerPart / 10.0.pow(i * 3 + j + 1)) * 10.0.pow(i * 3 + j + 1)) / 10.0.pow(i * 3 + j)).toInt())
-                }
-                yen.append(",")
-            }
-            yen.append(floor(integerPart / 10.0.pow(end * 3)).toInt().toString().reversed())
-            yen.reverse()
-        }
-        else yen.append("0").reverse()
-        return yen.toString()
-    }
-
-    private fun getYenString(money: String): String {
-        if (money.isEmpty()) {
-            return "0"
-        }
-        val yen = StringBuilder()
-        val first = (money.length + 2) % 3 + 1
-        for (i in 0 until 1 + (money.length - 1) / 3) {
-            if (i == 0) {
-                yen.append(money.substring(0, first))
-            } else {
-                yen.append(",").append(money.substring(first + 3 * (i - 1), first + 3 * i))
-            }
-        }
-        yen.append("円")
-        return yen.toString()
+    fun getYenString(money: Double):String{
+        return String.format("%,.0f",money)
     }
 
     fun getBalance(uuid: UUID):Double{
@@ -101,7 +70,7 @@ class VaultManager(private val plugin: JavaPlugin){
         val resp= economy!!.withdrawPlayer(p,money)
         if(resp.transactionSuccess()){
             if(p.isOnline){
-                p.player?.sendMessage("§e${getYenString(money)}支払いました")
+                p.player?.sendMessage("§e${getYenString(money)}円支払いました")
             }
             return true
         }
@@ -117,7 +86,7 @@ class VaultManager(private val plugin: JavaPlugin){
         val resp= economy!!.depositPlayer(p,money)
         if(resp.transactionSuccess()){
             if(p.isOnline){
-                p.player?.sendMessage("§e${getYenString(money)}受け取りました")
+                p.player?.sendMessage("§e${getYenString(money)}円受け取りました")
             }
             return true
         }

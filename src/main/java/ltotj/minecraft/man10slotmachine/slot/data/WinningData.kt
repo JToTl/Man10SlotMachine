@@ -4,7 +4,6 @@ import ltotj.minecraft.man10slotmachine.Main
 import ltotj.minecraft.man10slotmachine.utilities.ItemManager.ItemStackPlus
 import org.bukkit.Material
 import org.bukkit.configuration.ConfigurationSection
-import kotlin.random.Random
 
 class WinningData(val innerWinName:String,private val config:ConfigurationSection,val slot:SlotData){
 
@@ -66,8 +65,8 @@ class WinningData(val innerWinName:String,private val config:ConfigurationSectio
             winningPattern.add("${list[0]},${list[1]},${list[2]}")
             winningPattern.add("${(list[0]%slot.reels[1]!!.size)+1},${(list[1]%slot.reels[2]!!.size)+1},${(list[2]%slot.reels[3]!!.size)+1}")
             winningPattern.add("${((list[0]+1)%slot.reels[1]!!.size)+1},${((list[1]+1)%slot.reels[2]!!.size)+1},${((list[2]+1)%slot.reels[3]!!.size)+1}")
-            winningPattern.add("${(list[0]%slot.reels[1]!!.size)},${(list[1]%slot.reels[2]!!.size)+1},${((list[2]+1)%slot.reels[3]!!.size)+1}")
-            winningPattern.add("${((list[0]+1)%slot.reels[1]!!.size)+1},${(list[1]%slot.reels[2]!!.size)+1},${(list[2]%slot.reels[3]!!.size)}")
+            winningPattern.add("${list[0]},${(list[1]%slot.reels[2]!!.size)+1},${((list[2]+1)%slot.reels[3]!!.size)+1}")
+            winningPattern.add("${((list[0]+1)%slot.reels[1]!!.size)+1},${(list[1]%slot.reels[2]!!.size)+1},${(list[2])}")
         }
     }
 
@@ -78,12 +77,12 @@ class WinningData(val innerWinName:String,private val config:ConfigurationSectio
     }
 
     fun isFreezing():Boolean{
-        return Random.nextDouble() < (freezeData?.chance ?: 0.0)
+        return java.util.Random().nextDouble() < (freezeData?.chance ?: 0.0)
     }
 
     fun getChangeTable():ChangeTable?{
         for(change in changeTable){
-            if(Random.nextDouble()<change.chance){
+            if(java.util.Random().nextDouble()<change.chance){
                 if(change.table==null)return null
                 return change
             }

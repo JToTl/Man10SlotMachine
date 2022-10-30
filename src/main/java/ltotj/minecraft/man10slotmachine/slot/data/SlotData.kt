@@ -5,7 +5,6 @@ import ltotj.minecraft.man10slotmachine.utilities.ItemManager.ItemStackPlus
 import org.bukkit.Material
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.inventory.ItemStack
-import kotlin.random.Random
 
 class SlotData(val innerSlotName:String,config:ConfigurationSection) {
 
@@ -46,11 +45,11 @@ class SlotData(val innerSlotName:String,config:ConfigurationSection) {
             for(str in items){
                 val list=str.split("-")
                 if(list.size==1){
-                    reels[i]!!.add(ItemStackPlus(Material.valueOf(list[0].uppercase()), 1))
+                    reels[i]!!.add(ItemStackPlus(Material.valueOf(list[0].toUpperCase()), 1))
                 }
                 else {
                     reels[i]!!.add(
-                        ItemStackPlus(Material.valueOf(list[0].uppercase()), 1).setCustomModelData(
+                        ItemStackPlus(Material.valueOf(list[0].toUpperCase()), 1).setCustomModelData(
                             list[1].toIntOrNull() ?: 0
                         )
                     )
@@ -133,9 +132,9 @@ class SlotData(val innerSlotName:String,config:ConfigurationSection) {
         }
 
         //外れの出方を一つだけ保存しておく
-        var r1=Random.nextInt(reels[1]!!.size)+1
-        var r2=Random.nextInt(reels[2]!!.size)+1
-        var r3=Random.nextInt(reels[3]!!.size)+1
+        var r1=java.util.Random().nextInt(reels[1]!!.size)+1
+        var r2=java.util.Random().nextInt(reels[2]!!.size)+1
+        var r3=java.util.Random().nextInt(reels[3]!!.size)+1
 
         for(i in 0 until reels[1]!!.size){
             for(j in 0 until reels[2]!!.size){
@@ -160,7 +159,7 @@ class SlotData(val innerSlotName:String,config:ConfigurationSection) {
 
 
         //基礎テーブル読み込み
-        generalTable=tables[config.getString("general_table")]?:tables.values.first()
+        generalTable=tables[config.getString("general_setting.general_table")]?:tables.values.first()
 
         //当たり役の移行テーブル設定読み込み
         for(winning in winnings.values){

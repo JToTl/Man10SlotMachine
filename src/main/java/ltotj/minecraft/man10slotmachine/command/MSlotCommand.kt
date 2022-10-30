@@ -7,6 +7,7 @@ import ltotj.minecraft.man10slotmachine.event.CreateChairEvent
 import ltotj.minecraft.man10slotmachine.event.CreateSignEvent
 import ltotj.minecraft.man10slotmachine.event.CreateSlotEvent
 import ltotj.minecraft.man10slotmachine.slot.Converter
+import ltotj.minecraft.man10slotmachine.slot.DataSaver
 import ltotj.minecraft.man10slotmachine.slot.data.MadeSlotData
 import ltotj.minecraft.man10slotmachine.slot.Simulator
 import ltotj.minecraft.man10slotmachine.utilities.CommandManager.CommandArgumentType
@@ -15,7 +16,7 @@ import ltotj.minecraft.man10slotmachine.utilities.CommandManager.CommandObject
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 
-class MSlotCommand(plugin: JavaPlugin,pluginTitle:String) : CommandManager(plugin,"mslot", pluginTitle) {
+class MSlotCommand(plugin: JavaPlugin,pluginTitle:String) : CommandManager(plugin,"mslotv2", pluginTitle) {
 
     private val createObject=CommandObject(slots.keys,"スロット名")
         .addNextArgument(
@@ -48,6 +49,7 @@ class MSlotCommand(plugin: JavaPlugin,pluginTitle:String) : CommandManager(plugi
             }
             placedSlots[it.second[1]]!!.delete()
             sender.sendMessage("${pluginTitle}§a${it.second[1]}を削除しました")
+            reloadOnTabComplete()
         }
 
     private val simulateObject=CommandObject(slots.keys,"スロット名")
@@ -104,7 +106,7 @@ class MSlotCommand(plugin: JavaPlugin,pluginTitle:String) : CommandManager(plugi
                                 sender.sendMessage("${pluginTitle}§4${it.second[1]}は存在しません")
                                 return@setFunction
                             }
-                            placedSlots[it.second[1]]!!.setSlotTable(sender,it.second[1],it.second[2].toInt())
+                            placedSlots[it.second[1]]!!.setSlotTable(sender,it.second[2],it.second[3].toInt())
                         }
                 )
         )
@@ -185,28 +187,80 @@ class MSlotCommand(plugin: JavaPlugin,pluginTitle:String) : CommandManager(plugi
         removeChairObject.setArguments(placedSlots.keys)
         stockObject.setArguments(placedSlots.keys)
         tableObject.setArguments(placedSlots.keys)
+        addSignObject.setArguments(placedSlots.keys)
     }
 
 
     init {
-        setPermission("mslot.admin")
+        setPermission("mslotv2.admin")
+
+        addFirstArgument(
+            CommandObject("debugFlag")
+                .addNextArgument(
+                    CommandObject(CommandArgumentType.STRING)
+                        .setComment("スロット名")
+                        .addNextArgument(
+                            CommandObject(CommandArgumentType.STRING)
+                                .setFunction{
+                                    val args=it.second
+                                    placedSlots[args[1]]!!.debugFlag=args[2]
+                                }
+                        )
+                )
+        )
+
+        addFirstArgument(
+            CommandObject("debugLine")
+                .addNextArgument(
+                    CommandObject(CommandArgumentType.STRING)
+                        .setComment("スロット名")
+                        .setFunction{
+                            println(slots[it.second[1]]!!.allowedWinningPattern.values)
+                        }
+                )
+        )
 
         addFirstArgument(
             CommandObject("on")
                 .setExplanation("スロットを起動します")
-                .setFunction{}
+                .setFunction{
+                    if(Main.enable.get()){
+                        it.first.sendMessage("${pluginTitle}§4既にONです")
+                    }
+                    else{
+                        Main.enable.set(true)
+                        Main.plugin.config.set("enable",true)
+                        Main.plugin.saveConfig()
+                        Main.con=Main.plugin.config
+                        it.first.sendMessage("${pluginTitle}§aONにしました")
+                    }
+                }
         )
 
         addFirstArgument(
             CommandObject("off")
                 .setExplanation("スロットを停止します")
-                .setFunction{}
+                .setFunction{
+                    if(Main.enable.get()){
+                        Main.enable.set(false)
+                        Main.plugin.config.set("enable",false)
+                        Main.plugin.saveConfig()
+                        Main.con=Main.plugin.config
+                        it.first.sendMessage("${pluginTitle}§aOFFにしました")
+                    }
+                    else{
+                        it.first.sendMessage("${pluginTitle}§4既にOFFです")
+                    }
+                }
         )
 
         addFirstArgument(
             CommandObject("reload")
                 .setExplanation("コンフィグをリロードします")
                 .setFunction{
+
+                    Main.spinnersAddress.clear()
+                    Main.spinners.clear()
 
                     Main.loadConfig()
                     Main.loadSlotConfig()
@@ -311,11 +365,23 @@ class MSlotCommand(plugin: JavaPlugin,pluginTitle:String) : CommandManager(plugi
         )
 
         addFirstArgument(
+            CommandObject("runDataSaver")
+                .setExplanation("MySQLへのデータ保存を再開します(§c安全装置によりスロットが停止した後の復旧用§e)")
+                .setFunction{
+                    if(DataSaver.start()){
+                        it.first.sendMessage("${pluginTitle}§aDataSaverを可動させました")
+                    }
+                    else{
+                        it.first.sendMessage("${pluginTitle}§c既に可動しています")
+                    }
+                }
+        )
+
+        addFirstArgument(
             CommandObject("convert")
                 .setExplanation("old_slotsのファイルを新しい形式に変換します")
                 .setFunction{
-                    Converter.convert()
-                    it.first.sendMessage("${pluginTitle}§c変換が完了しました")
+                    Converter.convert(it.first)
                 }
         )
 

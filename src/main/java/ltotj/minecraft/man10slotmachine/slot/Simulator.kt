@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import java.math.BigDecimal
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.max
 
 class Simulator{
 
@@ -35,7 +36,7 @@ class Simulator{
         }
         onSimulating.set(true)
         Thread{
-            var stock=slot.stock
+            var stock=slot.preStock
             var table=slot.generalTable
             var remainingTableCount=0
             var totalOutMoney=0.0
@@ -50,11 +51,12 @@ class Simulator{
                 stock+=if(table.stock==Double.MIN_VALUE)slot.stock else table.stock
                 val win=table.getWinning()
                 val nextTable=win?.getChangeTable()
+                remainingTableCount= max(0,remainingTableCount-1)
                 if(win!=null){
                     totalWins+=1L
                     totalOutMoney+=stock*win.payStock+win.prize
                     winCounter[win]!!.add(stock*win.payStock+win.prize)
-                    if(win.resetStock)stock=slot.stock
+                    if(win.resetStock)stock=slot.preStock
                     stock+=win.addStock
                     remainingTableCount+=win.addGameCount
                 }
@@ -67,8 +69,6 @@ class Simulator{
                     table=slot.generalTable
                 }
             }
-
-            val rate=(totalOutMoney/totalInMoney)*100
 
             for(log in winCounter.values){
                 log.calculatePercentage(times)
@@ -85,7 +85,9 @@ class Simulator{
             sender.sendMessage("§c総当たり数：$totalWins")
             sender.sendMessage("§c総投入額：${String.format("%,.0f",totalInMoney)}")
             sender.sendMessage("§c総排出額：${String.format("%,.0f",totalOutMoney)}")
-            sender.sendMessage("§c還元率：§e${doubleToStr(rate)}%")
+            if(totalInMoney>0.0){
+                sender.sendMessage("§c還元率：§e${doubleToStr(100*totalOutMoney/totalInMoney)}%")
+            }
             sender.sendMessage("${Main.pluginTitle}§e====================================")
 
 

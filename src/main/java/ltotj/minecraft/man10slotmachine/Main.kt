@@ -19,6 +19,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.util.LinkedList
 import java.util.concurrent.atomic.AtomicBoolean
 
 class Main : JavaPlugin() {
@@ -31,10 +32,10 @@ class Main : JavaPlugin() {
         val placedSlots=HashMap<String,Man10Slot>()
         val levers=HashMap<Location,Man10Slot>()
         val enable=AtomicBoolean(false)
-        val allowSub=AtomicBoolean(false)
+        val allowSub=AtomicBoolean(true)
         val allowMultiSpin=AtomicBoolean(false)
-        val spinners=ArrayList<Player>()
-        val spinnersAddress=ArrayList<String>()
+        val spinners=LinkedList<Player>()
+        val spinnersAddress=LinkedList<String>()
         var useDB=true
         lateinit var con:FileConfiguration
         lateinit var coin:ItemStackPlus
@@ -45,7 +46,7 @@ class Main : JavaPlugin() {
             plugin.saveDefaultConfig()
             con=plugin.config
             enable.set(con.getBoolean("enable",false))
-            allowSub.set(con.getBoolean("allowSub",false))
+            allowSub.set(con.getBoolean("allowSub",true))
             allowMultiSpin.set(con.getBoolean("allowMultiSpin",false))
             useDB=con.getBoolean("use_db",true)
             coin= ItemStackPlus(Material.valueOf(con.getString("coin.material","GOLD_NUGGET")!!),1)

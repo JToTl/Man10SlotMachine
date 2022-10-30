@@ -9,6 +9,8 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.hanging.HangingPlaceEvent
+import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.inventory.EquipmentSlot
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -55,7 +57,7 @@ object CreateSlotEvent:Listener{
         }
         data.create(block.location)
         player.sendMessage("${Main.pluginTitle}§a設置完了")
+        Main.mSlotCommand.reloadOnTabComplete()
     }
-
 
 }

@@ -25,7 +25,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import kotlin.random.Random
 
 class Man10Slot {
 
@@ -43,6 +42,7 @@ class Man10Slot {
     lateinit var dataName:String
     lateinit var leverLocation:Location
 
+    var debugFlag:String?=null
     var flag:String?=null
 
     companion object{
@@ -63,13 +63,15 @@ class Man10Slot {
 
         //既存のもの読み込み
         constructor(){
-            val list=configManager.getString("sign_location")?.split(",")?:return
-            val world=Bukkit.getWorld(list[0])?:return
+            plugin.server.scheduler.runTask(plugin,Runnable{
+            val list=configManager.getString("sign_location")?.split(",")?: return@Runnable
+            val world=Bukkit.getWorld(list[0])?: return@Runnable
             location=Location(world,list[1].toDouble(),list[2].toDouble(),list[3].toDouble())
             val block=location!!.block.state
-            if(block !is Sign)return
+            if(block !is Sign) return@Runnable
             sign=block
             updateSign()
+            })
         }
 
 
@@ -78,7 +80,7 @@ class Man10Slot {
             this.sign=sign
             this.location=sign.location.toCenterLocation()
             configManager.setValue("sign_location","${location!!.world.name},${location!!.x},${location!!.y},${location!!.z}")
-            updateSign()
+            plugin.server.scheduler.runTaskLater(plugin,Runnable{updateSign()},1)
         }
 
     }
@@ -89,6 +91,27 @@ class Man10Slot {
         val itemFrames=ArrayList<ItemFrame?>()
         private val reelItems= slotData!!.reels[column]?: arrayListOf(ItemStack(Material.BARRIER,1))
         var currentItemNum=1 //一番上の段
+        val frameLocations=ArrayList<Location?>()
+
+        fun reloadItemFrames(){
+            itemFrames.clear()
+            for(loc in frameLocations){
+                if(loc==null){
+                    itemFrames.add(null)
+                }
+                else{
+                    val entities=loc
+                        .getNearbyEntitiesByType(ItemFrame::class.java,0.5)
+                        .toList()
+                    if(entities.isEmpty()){
+                        itemFrames.add(null)
+                    }
+                    else{
+                        itemFrames.add(entities[Random().nextInt(entities.size)])
+                    }
+                }
+            }
+        }
 
         fun loadItemFrames(){
             val list=configManager.getStringList("item_frame_location.reel${column}")
@@ -98,17 +121,23 @@ class Man10Slot {
                 val world=Bukkit.getWorld(frameList[0])
                 if(world==null){
                     itemFrames.add(null)
+                    frameLocations.add(null)
                 }
                 else{
-                    val entities=Location(world,frameList[1].toDouble(),frameList[2].toDouble(),frameList[3].toDouble())
+                    val loc=Location(world,frameList[1].toDouble(),frameList[2].toDouble(),frameList[3].toDouble())
                         .toCenterLocation()
+                    frameLocations.add(loc)
+                    plugin.server.scheduler.runTask(plugin,Runnable{
+                    val entities=loc
                         .getNearbyEntitiesByType(ItemFrame::class.java,0.5)
+                        .toList()
                     if(entities.isEmpty()){
                         itemFrames.add(null)
                     }
                     else{
-                        itemFrames.add(entities.random())
+                        itemFrames.add(entities[Random().nextInt(entities.size)])
                     }
+                    })
                 }
             }
         }
@@ -268,6 +297,7 @@ class Man10Slot {
         configManager.setValue("stock",stock)
         configManager.setValue("table",table.innerTableName)
         configManager.setValue("remaining_table_count",remainingTableCount)
+        configManager.saveConfig()
     }
 
     fun setSlotFlag(flag:String){
@@ -325,11 +355,11 @@ class Man10Slot {
             player.sendMessage("${pluginTitle}§4現在使用不可です")
             return
         }
-        if(!player.hasPermission("mslot.use")){
+        if(!player.hasPermission("mslotv2.use")){
             player.sendMessage("${pluginTitle}§4あなたはスロットを回す権限がありません")
             return
         }
-        if(!player.hasPermission(slotData!!.permission?:"mslot.use")){
+        if(!player.hasPermission(slotData!!.permission?:"mslotv2.use")){
             player.sendMessage("${pluginTitle}§4このスロットを回す権限がありません")
             return
         }
@@ -345,7 +375,7 @@ class Man10Slot {
             player.sendMessage("${pluginTitle}§4一度に複数のスロットを回すことはできません")
             return
         }
-        if(!Main.allowSub.get()&&Main.spinnersAddress.contains(player.address.address.hostAddress)){
+        if((!Main.allowSub.get())&&Main.spinnersAddress.contains(player.address.address.hostAddress)){
             player.sendMessage("${pluginTitle}§4サブアカウントを用いて複数のスロットを回すことはできません")
             return
         }
@@ -353,6 +383,10 @@ class Man10Slot {
         //支払い処理
         if(!payToSpinSlot(player)){
             return
+        }
+
+        for(reel in reels.values){
+            reel.reloadItemFrames()
         }
 
         Main.spinners.add(player)
@@ -366,6 +400,7 @@ class Man10Slot {
             slotData!!.stock
         }
         updateSign()
+
 
         executor.execute {
 
@@ -412,22 +447,29 @@ class Man10Slot {
                     win=null
                 }
                 else {
-                    line = slotData!!.allowedWinningPattern[win]!!.random()
+                    line = slotData!!.allowedWinningPattern[win]!!.get(Random().nextInt(slotData!!.allowedWinningPattern[win]!!.size))
                 }
             }
             else{
                 //外れの並び
                 //1,2の列の出目をランダムで決め、それに対し外れになるように3つ目を決める
-                val r1= Random.nextInt(slotData!!.reels[1]!!.size)+1
-                val r2= Random.nextInt(slotData!!.reels[2]!!.size)+1
-                var r3= Random.nextInt(slotData!!.reels[3]!!.size)+1
-                for(i in 0 until slotData!!.reels[3]!!.size){
-                    val str="${r1},${r2},${r3}"
-                    if(!slotData!!.winningPattern.contains(str)){
-                        line=str
-                        break
+                if(debugFlag!=null){
+                    line=debugFlag
+                    debugFlag=null
+                }
+                else {
+                    val r1 = Random().nextInt(slotData!!.reels[1]!!.size) + 1
+                    val r2 = Random().nextInt(slotData!!.reels[2]!!.size) + 1
+                    var r3 = Random().nextInt(slotData!!.reels[3]!!.size) + 1
+                    for (i in 0 until slotData!!.reels[3]!!.size) {
+                        val str = "${r1},${r2},${r3}"
+                        if (!slotData!!.winningPattern.contains(str)) {
+                            line = str
+                            println("${slotData!!.slotName}はずれ$line")
+                            break
+                        }
+                        r3 = (r3 % slotData!!.reels[3]!!.size) + 1
                     }
-                    r3=(r3%slotData!!.reels[3]!!.size)+1
                 }
             }
 
@@ -576,7 +618,7 @@ class Man10Slot {
 
 
             if(Main.useDB) {
-                DataSaver.addSpinData(player,configManager.filename,slotData!!.slotName?:"null",slotData!!.priceItem,win,slotData!!.price
+                DataSaver.addSpinData(player,configManager.filename,slotData!!.innerSlotName?:"null",slotData!!.priceItem,win,slotData!!.price
                 ,payBack,table.innerTableName,remainingTableCount, Date()
                 )
             }
@@ -602,7 +644,12 @@ class Man10Slot {
     private fun playEffects(player:Player,particle:ParticleData?){
         if(particle==null)return
         val loc=reels[2]?.itemFrames?.get((reels[2]?.itemFrames?.size)?.div(2) ?:0)?.location?:return
-        particle.particle?.let { loc.world.spawnParticle(it,loc,particle.count) }
+        particle.particle?.let {
+            try{loc.world.spawnParticle(it,loc,particle.count)}
+            catch (e:IllegalArgumentException){
+                println("${pluginTitle}§4${dataName}で${particle.particle?.name}を用いることはできません")
+            }
+        }
     }
 
     private fun executeCommand(player:Player,commands:MutableList<String>?){
@@ -654,15 +701,15 @@ class Man10Slot {
                     for (frame in reel.itemFrames) {
                         val loc = frame?.location?.clone() ?: continue
                         val dif =
-                            loc.direction.crossProduct(Vector(0, 1, 0)).normalize().multiply(0.5 - Random.nextDouble())
-                                .add(Vector(0.0, (1 - Random.nextDouble()) * 0.5, 0.0)).add(loc.direction.clone().normalize().multiply(0.3))
+                            loc.direction.crossProduct(Vector(0, 1, 0)).normalize().multiply(0.5 - Random().nextDouble())
+                                .add(Vector(0.0, (1 - Random().nextDouble()) * 0.5, 0.0)).add(loc.direction.clone().normalize().multiply(0.3))
                         loc.add(dif)
 
                         val drop = loc.world.dropItem(loc, item)
                         drop.setCanMobPickup(false)
                         drop.setCanPlayerPickup(false)
                         drop.velocity =
-                            loc.direction.normalize().add(Vector(0.0, Random.nextDouble(), 0.0)).multiply(Random.nextDouble()*0.3)
+                            loc.direction.normalize().add(Vector(0.0, Random().nextDouble(), 0.0)).multiply(Random().nextDouble()*0.3)
                         drops.add(drop)
                     }
                 }
