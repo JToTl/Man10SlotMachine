@@ -28,7 +28,7 @@ import kotlin.collections.HashMap
 
 class Man10Slot {
 
-    private lateinit var configManager:ConfigManager
+    private var configManager:ConfigManager
     var slotData:SlotData?=null
     var spinner:Player?=null
     private var stock=0.0
@@ -37,7 +37,7 @@ class Man10Slot {
     private val reels=HashMap<Int,Reel>()
     var chair:Chair?=null
     private val executor= Executors.newCachedThreadPool()
-    var isSpinning=AtomicBoolean(false)
+    var isSpinning=false
     var sign:SlotSign?=null
     lateinit var dataName:String
     lateinit var leverLocation:Location
@@ -89,9 +89,14 @@ class Man10Slot {
     inner class Reel(private val column:Int){
 
         val itemFrames=ArrayList<ItemFrame?>()
-        private val reelItems= slotData!!.reels[column]?: arrayListOf(ItemStack(Material.BARRIER,1))
+        private var reelItems= slotData!!.reels[column]?: arrayListOf(ItemStack(Material.BARRIER,1))
         var currentItemNum=1 //一番上の段
         val frameLocations=ArrayList<Location?>()
+
+        fun reloadReelItem(){
+            reelItems= slotData!!.reels[column]?: arrayListOf(ItemStack(Material.BARRIER,1))
+            currentItemNum=1
+        }
 
         fun reloadItemFrames(){
             itemFrames.clear()
@@ -367,15 +372,15 @@ class Man10Slot {
             player.sendMessage("${pluginTitle}§4横回しはできません")
             return
         }
-        if(isSpinning.get()){
+        if(isSpinning){
             player.sendMessage("${pluginTitle}§c既に回っています")
             return
         }
-        if(!Main.allowMultiSpin.get()&&Main.spinners.contains(player)){
+        if(!Main.allowMultiSpin&&Main.spinners.contains(player)){
             player.sendMessage("${pluginTitle}§4一度に複数のスロットを回すことはできません")
             return
         }
-        if((!Main.allowSub.get())&&Main.spinnersAddress.contains(player.address.address.hostAddress)){
+        if((!Main.allowSub)&&Main.spinnersAddress.contains(player.address.address.hostAddress)){
             player.sendMessage("${pluginTitle}§4サブアカウントを用いて複数のスロットを回すことはできません")
             return
         }
@@ -391,7 +396,7 @@ class Man10Slot {
 
         Main.spinners.add(player)
         Main.spinnersAddress.add(player.address.address.hostAddress)
-        isSpinning.set(true)
+        isSpinning=true
 
         //ストックの追加
         stock += if(table.stock!=Double.MIN_VALUE){
@@ -412,8 +417,8 @@ class Man10Slot {
             }
 
             executeCommand(player,spinSetting?.command)
-            playSound(player,spinSetting?.soundData)
-            playEffects(player,spinSetting?.particleData)
+            playSound(spinSetting?.soundData)
+            playEffects(spinSetting?.particleData)
 
             //spinning_soundの取得
             var spinningSound=slotData?.spinningSound
@@ -485,13 +490,13 @@ class Man10Slot {
                     reels[1]!!.next()
                     reels[2]!!.next()
                     reels[3]!!.next()
-                    playSound(player,spinningSound)
+                    playSound(spinningSound)
                 }
                 for(reel in reels.values){
                     reel.removeItems()
                 }
                 val freeze=win!!.freezeData!!
-                playSound(player,freeze.predictSound)
+                playSound(freeze.predictSound)
                 executeCommand(player,freeze.command)
                 Thread.sleep(5000)
                 //回転数の計算
@@ -506,22 +511,22 @@ class Man10Slot {
                     reels[1]!!.next()
                     reels[2]!!.next()
                     reels[3]!!.next()
-                    playSound(player, spinningSound)
+                    playSound(spinningSound)
                 }
-                playSound(player,freeze.stopSounds[1])
+                playSound(freeze.stopSounds[1])
                 for(i in 0 until toReel2){
                     Thread.sleep(freeze.sleep)
                     reels[2]!!.next()
                     reels[3]!!.next()
-                    playSound(player, spinningSound)
+                    playSound(spinningSound)
                 }
-                playSound(player,freeze.stopSounds[2])
+                playSound(freeze.stopSounds[2])
                 for(i in 0 until toReel3){
                     Thread.sleep(freeze.sleep)
                     reels[3]!!.next()
-                    playSound(player, spinningSound)
+                    playSound(spinningSound)
                 }
-                playSound(player,freeze.stopSounds[3])
+                playSound(freeze.stopSounds[3])
 
             }
             else {
@@ -541,18 +546,18 @@ class Man10Slot {
                     reels[1]!!.next()
                     reels[2]!!.next()
                     reels[3]!!.next()
-                    playSound(player, spinningSound)
+                    playSound(spinningSound)
                 }
                 for (i in 0 until toReel2) {
                     Thread.sleep(slotData!!.sleep)
                     reels[2]!!.next()
                     reels[3]!!.next()
-                    playSound(player, spinningSound)
+                    playSound(spinningSound)
                 }
                 for (i in 0 until toReel3) {
                     Thread.sleep(slotData!!.sleep)
                     reels[3]!!.next()
-                    playSound(player, spinningSound)
+                    playSound(spinningSound)
                 }
 
             }
@@ -581,13 +586,13 @@ class Man10Slot {
                     })
                 }
 
-                playSound(player,win.winSound)
-                playEffects(player,win.particleData)
+                playSound(win.winSound)
+                playEffects(win.particleData)
 
                 //ストックの処理
                 vault.deposit(player,payBack)
                 if(win.resetStock){
-                    stock=slotData!!.preStock
+                    stock=slotData?.preStock?:0.0
                 }
                 stock+=win.addStock
                 plugin.server.scheduler.runTask(plugin,Runnable{updateSign()})
@@ -596,36 +601,45 @@ class Man10Slot {
                 remainingTableCount+=win.addGameCount
             }
             else{
-                executeCommand(player,slotData!!.stopSetting?.command)
-                playSound(player,slotData!!.stopSetting?.soundData)
-                playEffects(player,slotData!!.stopSetting?.particleData)
+                executeCommand(player,slotData?.stopSetting?.command)
+                playSound(slotData?.stopSetting?.soundData)
+                playEffects(slotData?.stopSetting?.particleData)
                 player.sendMessage("${pluginTitle}§c外れました")
             }
 
             //テーブルの移動処理
             if(nextTable!=null){
                 //winによって移動先が存在する場合
-                executeTableSetting(player,nextTable.table!!.startTableSetting)
+                executeTableSetting(player,nextTable.table?.startTableSetting)
                 remainingTableCount=nextTable.count
-                table=nextTable.table!!
+                table=nextTable.table?:table
             }
-            else if(remainingTableCount<=0&&table!=slotData!!.generalTable){
+            else if(remainingTableCount<=0&&table!=slotData?.generalTable){
                 //ゲーム数0でgeneral_tableへ移動する場合
                 executeTableSetting(player,table.endTableSetting)
-                executeTableSetting(player,slotData!!.generalTable.startTableSetting)
-                table=slotData!!.generalTable
+                executeTableSetting(player,slotData?.generalTable?.startTableSetting)
+                table=slotData?.generalTable?:table
             }
 
+            //スロットの移動処理
+            if(win?.changeSlot!=null){
+                changeSlot(win.changeSlot!!.slotName,win.changeSlot!!.tableName,win.changeSlot!!.count)
+            }
 
             if(Main.useDB) {
                 DataSaver.addSpinData(player,configManager.filename,slotData!!.innerSlotName?:"null",slotData!!.priceItem,win,slotData!!.price
                 ,payBack,table.innerTableName,remainingTableCount, Date()
                 )
             }
+
             saveConfig()
-            Main.spinners.remove(player)
-            Main.spinnersAddress.remove(player.address.address.hostAddress)
-            isSpinning.set(false)
+
+            plugin.server.scheduler.runTask(plugin,Runnable{
+                Main.spinners.remove(player)
+                Main.spinnersAddress.remove(player.address.address.hostAddress)
+                isSpinning=false
+            })
+
         }
     }
 
@@ -636,12 +650,12 @@ class Man10Slot {
 
 
 
-    private fun playSound(player:Player,sound:SoundData?){
+    private fun playSound(sound:SoundData?){
         if(sound==null)return
         leverLocation.world.playSound(leverLocation,sound.sound?:"",sound.volume,sound.pitch)
     }
 
-    private fun playEffects(player:Player,particle:ParticleData?){
+    private fun playEffects(particle:ParticleData?){
         if(particle==null)return
         val loc=reels[2]?.itemFrames?.get((reels[2]?.itemFrames?.size)?.div(2) ?:0)?.location?:return
         particle.particle?.let {
@@ -670,8 +684,8 @@ class Man10Slot {
     private fun executeTableSetting(player:Player,setting:SettingData?){
         if(setting==null)return
         executeCommand(player,setting.command)
-        playSound(player,setting.soundData)
-        playEffects(player,setting.particleData)
+        playSound(setting.soundData)
+        playEffects(setting.particleData)
     }
 
 
@@ -721,6 +735,28 @@ class Man10Slot {
                 }
             },60)
         })
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //あったら楽しそうな関数
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    //スロットの内部指定の変更
+    fun changeSlot(slotName:String,tableName:String,tableCount:Int){
+        if(!Main.slots.containsKey(slotName))return
+        if(!Main.slots[slotName]!!.alone!=slotData?.alone)return
+        slotData=Main.slots[slotName]!!
+        table=slotData!!.tables[tableName]?:slotData!!.generalTable
+        remainingTableCount=tableCount
+        configManager.setValue("slot_name",slotName)
+        configManager.setValue("table",table.innerTableName)
+        configManager.setValue("remaining_table_count",tableCount)
+        configManager.saveConfig()
+        for(reel in reels.values){
+            reel.reloadReelItem()
+        }
     }
 
 

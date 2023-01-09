@@ -213,6 +213,10 @@ class MySQLManager(private val plugin: JavaPlugin) {
         return insertQuery!!
     }
 
+    fun getFreeInsertQuery(table:String): InsertQuery {
+        return InsertQuery(table)
+    }
+
     fun escapedString(str:String):String{
         return str
                 .replace("\\", "\\\\")

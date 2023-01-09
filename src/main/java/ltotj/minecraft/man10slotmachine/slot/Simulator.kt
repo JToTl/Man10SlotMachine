@@ -49,9 +49,10 @@ class Simulator{
 
             for(i in 0 until times){
                 stock+=if(table.stock==Double.MIN_VALUE)slot.stock else table.stock
-                val win=table.getWinning()
-                val nextTable=win?.getChangeTable()
+
                 remainingTableCount= max(0,remainingTableCount-1)
+                val win=if(remainingTableCount==0&&table.endWinning!=null)table.endWinning!! else table.getWinning()
+                val nextTable=win?.getChangeTable()
                 if(win!=null){
                     totalWins+=1L
                     totalOutMoney+=stock*win.payStock+win.prize

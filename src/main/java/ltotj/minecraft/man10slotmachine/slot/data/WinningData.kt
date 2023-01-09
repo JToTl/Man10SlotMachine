@@ -16,6 +16,7 @@ class WinningData(val innerWinName:String,private val config:ConfigurationSectio
     val addGameCount=config.getInt("add_game_count",0)
     val winningPattern=ArrayList<String>()
     val changeTable=ArrayList<ChangeTable>()
+    var changeSlot:ChangeSlot?=null
     val command: MutableList<String> =config.getStringList("command")
     val coinDrop=config.getBoolean("coin_drop",false)
     var coinDropItem:ItemStackPlus?=null
@@ -38,6 +39,23 @@ class WinningData(val innerWinName:String,private val config:ConfigurationSectio
         }
     }
 
+    inner class ChangeSlot(str:String){
+        var slotName=""
+        var tableName=""
+        var count=0
+        init {
+            val list=str.split("-")
+            if(list.size<3){
+                println("${Main.pluginTitle}${slotName}のchangeTableの書き方に誤りがあります")
+            }
+            else {
+                slotName = list[0]
+                tableName = list[1]
+                count = list[2].toIntOrNull() ?: 1
+            }
+        }
+    }
+
     init {
 
         if(config.get("freeze")!=null){
@@ -53,7 +71,9 @@ class WinningData(val innerWinName:String,private val config:ConfigurationSectio
         if(config.get("win_particle")!=null){
             particleData= ParticleData(config.getConfigurationSection("win_particle")!!)
         }
-
+        if(config.get("change_slot")!=null){
+            changeSlot=ChangeSlot(config.getString("change_slot")?:"1-1-1")
+        }
         if(slot.alone){
             winningPattern.add(config.getString("item")!!)
         }

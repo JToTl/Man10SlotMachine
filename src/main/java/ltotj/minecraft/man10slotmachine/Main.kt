@@ -32,8 +32,8 @@ class Main : JavaPlugin() {
         val placedSlots=HashMap<String,Man10Slot>()
         val levers=HashMap<Location,Man10Slot>()
         val enable=AtomicBoolean(false)
-        val allowSub=AtomicBoolean(true)
-        val allowMultiSpin=AtomicBoolean(false)
+        var allowSub=true
+        var allowMultiSpin=false
         val spinners=LinkedList<Player>()
         val spinnersAddress=LinkedList<String>()
         var useDB=true
@@ -46,8 +46,8 @@ class Main : JavaPlugin() {
             plugin.saveDefaultConfig()
             con=plugin.config
             enable.set(con.getBoolean("enable",false))
-            allowSub.set(con.getBoolean("allowSub",true))
-            allowMultiSpin.set(con.getBoolean("allowMultiSpin",false))
+            allowSub=con.getBoolean("allowSub",true)
+            allowMultiSpin=con.getBoolean("allowMultiSpin",false)
             useDB=con.getBoolean("use_db",true)
             coin= ItemStackPlus(Material.valueOf(con.getString("coin.material","GOLD_NUGGET")!!),1)
                 .setCustomModelData(con.getInt("coin.cmd",0))

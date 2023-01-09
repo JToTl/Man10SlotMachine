@@ -1,7 +1,7 @@
 enable: true
 allowSub: false
 allowMultiSpin: false
-use_db: true
+use_db: false
 coin:
   material: GOLD_NUGGET
   cmd: 1

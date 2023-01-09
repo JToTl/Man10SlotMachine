@@ -4,6 +4,7 @@ import ltotj.minecraft.man10slotmachine.Main
 import ltotj.minecraft.man10slotmachine.slot.data.SlotData
 import ltotj.minecraft.man10slotmachine.slot.data.WinningData
 import ltotj.minecraft.man10slotmachine.utilities.MySQLManager.MySQLManager
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.text.SimpleDateFormat
 import java.util.*
@@ -12,14 +13,14 @@ import kotlin.collections.ArrayList
 object DataSaver {
 
 
-    private val mysql=MySQLManager(Main.plugin)
+    private var mysql=MySQLManager(Main.plugin)
     private val queries=ArrayList<MySQLManager.InsertQuery>()
     var mysqlThread:Thread?=null
     var saturation=false
     var isRunning=false
 
     fun addSpinData(player: Player,fileName:String,slotName:String,priceItem:SlotData.PriceItem?,win: WinningData?,pay:Double,payBack:Double,tableName:String,tableCount:Int,date: Date){
-        val query=mysql.getInsertQuery("slot_record")
+        val query=mysql.getFreeInsertQuery("slot_record")
             .add("mcid",player.name)
             .add("uuid",player.uniqueId.toString())
             .add("slot_name",slotName)
@@ -45,8 +46,39 @@ object DataSaver {
         queries.add(query)
     }
 
+    fun fStart(){
+        mysqlThread?.interrupt()
+        mysqlThread=Thread{
+
+            mysql.execute("CREATE TABLE IF NOT EXISTS slot_record(\n" +
+                    "\n" +
+                    "   id int unsigned auto_increment,\n" +
+                    "   mcid varchar(16),\n" +
+                    "   uuid varchar(36),\n" +
+                    "   slot_name varchar(64),\n" +
+                    "   slot_file varchar(64),\n" +
+                    "   win_name varchar(64),\n" +
+                    "   win_level int default -1,\n" +
+                    "   inmoney double,\n" +
+                    "   in_item varchar(128) null,\n" +
+                    "   outmoney double default 0,\n" +
+                    "   table_name varchar(64),\n" +
+                    "   table_count int default -1,\n" +
+                    "   date DATETIME,\n" +
+                    "\n" +
+                    "   primary key(id)\n" +
+                    "\n" +
+                    ")")
+
+            saveSpinData()
+        }
+        isRunning=true
+        mysqlThread!!.start()
+    }
+
     fun start():Boolean{
         if(isRunning)return false
+        mysql=MySQLManager(Main.plugin)
         mysqlThread?.interrupt()
         mysqlThread=Thread{
 
@@ -96,7 +128,6 @@ object DataSaver {
                     queries.remove(query)
                 } else {
                     fail = true
-                    Main.enable.set(false)
                 }
             }
             if (fail) {
@@ -106,6 +137,12 @@ object DataSaver {
         }
         isRunning=false
         println("${Main.pluginTitle}§4データ保存でエラーが発生しました")
+        Bukkit.getScheduler().runTaskLater(Main.plugin,
+            Runnable {
+                fail=false
+                start()
+                println("${Main.pluginTitle}§4データセーバーを再稼働しました")
+        },100)
 
     }
 

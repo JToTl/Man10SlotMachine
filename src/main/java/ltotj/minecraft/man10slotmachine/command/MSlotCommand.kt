@@ -378,10 +378,26 @@ class MSlotCommand(plugin: JavaPlugin,pluginTitle:String) : CommandManager(plugi
         )
 
         addFirstArgument(
+            CommandObject("forcedRunDataSaver")
+                .setExplanation("強制的にMySQLへのデータ保存を再開します(§c安全装置によりスロットが停止した後の復旧用§e)")
+                .setFunction{
+                    DataSaver.fStart()
+                }
+        )
+
+        addFirstArgument(
             CommandObject("convert")
                 .setExplanation("old_slotsのファイルを新しい形式に変換します")
                 .setFunction{
                     Converter.convert(it.first)
+                }
+        )
+
+        addFirstArgument(
+            CommandObject("dboff")
+                .setExplanation("dbへの保存をoffにします(最終手段)")
+                .setFunction{
+                    Main.useDB=false
                 }
         )
 

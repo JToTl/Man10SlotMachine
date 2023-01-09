@@ -60,6 +60,15 @@ class TableData(val innerTableName:String,config:ConfigurationSection,val slot:S
             spinningSound= SoundData(config.getConfigurationSection("spinning_sound")!!)
         }
 
+        if(config.get("end_winning")!=null){
+            val winKey=config.getString("end_winning")
+            if(slot.winnings.containsKey(winKey)){
+                endWinning=slot.winnings[winKey]!!
+            }
+            else{
+                println("${pluginTitle}${innerTableName}テーブルにて最終当たりに不明な役が指定されています")
+            }
+        }
 
     }
 
